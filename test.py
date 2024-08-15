@@ -1,14 +1,23 @@
-# This is a sample Python script.
+from flask import Flask, request, render_template
+import pdfplumber
+import re
+import os
 
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
+app = Flask(__name__)
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')
+@app.route("/", methods=["GET", "POST"])
+def upload_files():
+    if request.method == "POST":
+        files = request.files.getlist("file[]")
+        results = []
+        for file in files:
+            with pdfplumber.open(file) as pdf:
+                first_page = pdf.pages[0]
+                text = first_page.extract_text()
+                invoice_number = re.search(r'# (\d+)', text).group(1)
+                results.append(f"{file.filename}: Invoice Number = {invoice_number}")
+        return "<br>".join(results)
+    return render_template("upload.html")
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+if __name__ == "__main__":
+    app.run(debug=True)
